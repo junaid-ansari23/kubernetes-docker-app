@@ -1,0 +1,16 @@
+kind: "Route"
+apiVersion: "v1"
+metadata:
+  name: "boot-app-route"
+  labels:
+     component: "boot-app-route"
+spec:
+   host: "bootapp.demo.com"
+   to:
+     kind: "Service"
+     name: "boot-app-service"
+   port:
+     targetPort: "port1"
+   tls:
+     insecureEdgeTerminationPolicy: Allow
+     termination: edge

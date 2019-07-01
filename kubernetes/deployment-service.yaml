@@ -1,0 +1,84 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: boot-app-service
+  labels:
+    name: boot-app-service
+spec:
+  ports:
+    - port: 8080  
+      name: port1
+      protocol: TCP
+      targetPort: 8080
+  selector:
+    name: boot-app
+  type: ClusterIP
+  sessionAffinity: None
+---
+kind: DeploymentConfig
+apiVersion: v1
+metadata:
+  name: boot-app
+spec:
+  template:
+    metadata:
+      labels:
+        name: boot-app
+      annotations:
+        app_version: latest
+    spec:
+      containers:
+      - name: boot-app
+        #give your docker container repository where you application image resides and should be accessible
+        image: containers.test.com/demo/boot-app:v1
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        env:        
+        - name: JAVA_OPTS_APPEND
+          value: -Dspring.profiles.active=dev       
+        resources:
+          limits:
+            cpu: 500m
+            memory: 1.5Gi
+          requests:
+            cpu: 100m
+            memory: .5Gi
+        volumeMounts:
+        - name: podinfo
+          mountPath: /etc/metadata
+          readOnly: false
+        - name: boot-app-logs
+          mountPath: /var/boot-app/logs
+          readOnly: false
+        securityContext:
+          capabilities: {
+            }
+          privileged: false
+      volumes:
+      - emptyDir: {}
+        name: boot-app-logs
+      - name: podinfo
+        downwardAPI:
+          items:
+          - path: labels
+            fieldRef:
+              fieldPath: metadata.labels
+          - path: annotations
+            fieldRef:
+              fieldPath: metadata.annotations
+      restartPolicy: Always
+      dnsPolicy: ClusterFirst
+  replicas: 1
+  selector:
+    name: boot-app
+  triggers:
+  - type: ConfigChange
+  strategy:
+    type: Rolling
+    rollingParams:
+      updatePeriodSeconds: 1
+      intervalSeconds: 1
+      timeoutSeconds: 1000
+      maxSurge: 3
